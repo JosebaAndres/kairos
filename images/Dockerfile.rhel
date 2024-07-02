@@ -31,6 +31,12 @@ FROM base AS fedora
 # Enable once zfs releases for fedora 40
 #RUN dnf install -y "https://zfsonlinux.org/fedora/zfs-release-2-4$(rpm --eval "%{dist}").noarch.rpm" && dnf clean all
 
+FROM base AS redhat
+# Register Red Hat development account to be able to install packages
+RUN subscription-manager register --force --org 5849813 --activationkey Schlaghecken_Testserver_1
+# Install the EPEL release package for additional packages
+RUN yes | dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+
 # install common packages
 FROM ${FLAVOR} AS common
 RUN dnf update -y
@@ -97,3 +103,7 @@ RUN systemctl enable systemd-networkd
 RUN systemctl enable systemd-resolved
 RUN systemctl disable dnf-makecache.service
 RUN systemctl enable sshd
+
+# Unregister Red Hat development account to release it (only for Red Hat)
+FROM redhat
+RUN subscription-manager unregister
