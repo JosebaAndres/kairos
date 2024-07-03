@@ -18,19 +18,6 @@ FROM $BASE_IMAGE AS base
 
 RUN echo "install_weak_deps=False" >> /etc/dnf/dnf.conf
 
-# Install packages according to distro
-# epel-packages https://docs.fedoraproject.org/en-US/epel/
-FROM base AS epel
-RUN dnf install -y epel-release && dnf clean all
-RUN dnf install -y "https://zfsonlinux.org/epel/zfs-release-2-3$(rpm --eval "%{dist}").noarch.rpm" && dnf clean all
-
-FROM epel AS almalinux
-FROM epel AS rockylinux
-
-FROM base AS fedora
-# Enable once zfs releases for fedora 40
-#RUN dnf install -y "https://zfsonlinux.org/fedora/zfs-release-2-4$(rpm --eval "%{dist}").noarch.rpm" && dnf clean all
-
 FROM base AS redhat
 # Register Red Hat development account to be able to install packages
 RUN subscription-manager register --force --org 5849813 --activationkey Schlaghecken_Testserver_1
@@ -38,7 +25,7 @@ RUN subscription-manager register --force --org 5849813 --activationkey Schlaghe
 RUN yes | dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 
 # install common packages
-FROM ${FLAVOR} AS common
+FROM redhat AS common
 RUN dnf update -y
 RUN dnf makecache
 RUN dnf install -y \
@@ -104,6 +91,7 @@ RUN systemctl enable systemd-resolved
 RUN systemctl disable dnf-makecache.service
 RUN systemctl enable sshd
 
+# Creates a symbolic link to ensure the `getty` terminal service starts automatically on system boot.
+RUN ln -s /usr/lib/systemd/system/getty@.service /etc/systemd/system/multi-user.target.wants/getty@tty1.service
 # Unregister Red Hat development account to release it (only for Red Hat)
-FROM redhat
 RUN subscription-manager unregister
