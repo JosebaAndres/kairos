@@ -5,11 +5,11 @@
 # WARNING: While some of the ARGs are not used in this file, they are used in the images/Dockerfile.kairos-* files
 # TARGETARCH is used to determine the architecture of the image, it is already set by Docker so it doesn't need to be defined here
 ARG FAMILY=rhel
-ARG FLAVOR
-ARG FLAVOR_RELEASE
+ARG FLAVOR=redhat
+ARG FLAVOR_RELEASE=ubi9
 ARG MODEL=generic
-ARG BASE_IMAGE
-ARG VARIANT
+ARG BASE_IMAGE=redhat/ubi9
+ARG VARIANT=standard
 ARG VERSION
 ARG FRAMEWORK_VERSION=main
 ARG BOOTLOADER=grub
