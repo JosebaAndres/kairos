@@ -4,11 +4,11 @@
 ###############################################################
 # TARGETARCH is used to determine the architecture of the image, it is already set by Docker so it doesn't need to be defined here
 ARG FAMILY=rhel
-ARG FLAVOR=redhat
-ARG FLAVOR_RELEASE=ubi9
+ARG FLAVOR
+ARG FLAVOR_RELEASE
 ARG MODEL=generic
-ARG BASE_IMAGE=redhat/ubi9
-ARG VARIANT=standard
+ARG BASE_IMAGE
+ARG VARIANT
 ARG VERSION
 ARG FRAMEWORK_VERSION=main
 ARG BOOTLOADER=grub
@@ -16,6 +16,19 @@ ARG BOOTLOADER=grub
 FROM $BASE_IMAGE AS base
 
 RUN echo "install_weak_deps=False" >> /etc/dnf/dnf.conf
+
+# Install packages according to distro
+# epel-packages https://docs.fedoraproject.org/en-US/epel/
+FROM base AS epel
+RUN dnf install -y epel-release && dnf clean all
+RUN dnf install -y "https://zfsonlinux.org/epel/zfs-release-2-3$(rpm --eval "%{dist}").noarch.rpm" && dnf clean all
+
+FROM epel AS almalinux
+FROM epel AS rockylinux
+
+FROM base AS fedora
+# Enable once zfs releases for fedora 40
+#RUN dnf install -y "https://zfsonlinux.org/fedora/zfs-release-2-4$(rpm --eval "%{dist}").noarch.rpm" && dnf clean all
 
 FROM base AS redhat
 # Register Red Hat development account to be able to install packages
@@ -89,6 +102,11 @@ RUN systemctl enable systemd-networkd
 RUN systemctl enable systemd-resolved
 RUN systemctl disable dnf-makecache.service
 RUN systemctl enable sshd
+
+# Creates a symbolic link to ensure the `getty` terminal service starts automatically on system boot.
+RUN ln -s /usr/lib/systemd/system/getty@.service /etc/systemd/system/multi-user.target.wants/getty@tty1.service
+# Unregister Red Hat development account to release it (only for Red Hat)
+RUN subscription-manager unregister
 
 FROM --platform="linux/${TARGETARCH}" quay.io/kairos/framework:${FRAMEWORK_VERSION} AS framework
 
@@ -207,8 +225,3 @@ RUN if [ "$(which-init.sh)" = "systemd" ]; then \
 RUN rm -rf /tmp/*
 RUN luet cleanup
 RUN rm -rf /var/luet
-
-# Creates a symbolic link to ensure the `getty` terminal service starts automatically on system boot.
-RUN ln -s /usr/lib/systemd/system/getty@.service /etc/systemd/system/multi-user.target.wants/getty@tty1.service
-# Unregister Red Hat development account to release it (only for Red Hat)
-RUN subscription-manager unregister
